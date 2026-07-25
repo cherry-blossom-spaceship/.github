@@ -5,6 +5,11 @@ body:
   - type: markdown
     attributes:
       value: |
+        ### Sovereignty, portability, and rename-resilience
+        Use the Path Registry; do not hardcode paths. Keep code OS-agnostic across Windows and Linux, with registry entries rather than machine-specific paths as the canonical reference.
+  - type: markdown
+    attributes:
+      value: |
         Use one parent issue for a bounded project, then attach its work items as **native GitHub sub-issues**.
 
         Keep hierarchy to exactly one level: **parent → child**. Do not create grandchildren. A Markdown checklist is useful for notes, but does not replace attaching the actual native sub-issues.
