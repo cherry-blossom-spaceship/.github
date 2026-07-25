@@ -1,0 +1,61 @@
+name: Implementation slice
+description: A focused, independently reviewable child issue for an existing parent project.
+title: "[Slice] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this for one reviewable unit of work. Link it to a native **Project parent** issue; do not create sub-issues beneath this slice.
+  - type: input
+    id: parent
+    attributes:
+      label: Parent project issue URL
+      description: The native parent issue this slice belongs to.
+      placeholder: https://github.com/ORG/REPO/issues/NN
+    validations:
+      required: true
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal
+      description: What does this focused slice accomplish?
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Concrete, testable conditions for done.
+      value: |
+        - [ ]
+        - [ ]
+    validations:
+      required: true
+  - type: textarea
+    id: verification
+    attributes:
+      label: Verification / tests
+      description: Commands, CI checks, and/or manual smoke steps that demonstrate completion.
+    validations:
+      required: true
+  - type: textarea
+    id: role-card
+    attributes:
+      label: Role card and gate
+      description: Name implementation, independent review, merge authority, and any human/safety stop condition.
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Context / dependencies
+      description: Links to related issues, PRs, documentation, or prerequisite work.
+    validations:
+      required: false
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Privacy / secrets
+      options:
+        - label: This issue contains no credentials, tokens, or raw private/not-public material.
+          required: true

@@ -1,0 +1,49 @@
+name: Workflow / automation task
+description: Add or change CI, scheduled automation, agents, hooks, or other operational workflow.
+title: "[Workflow] "
+body:
+  - type: input
+    id: parent
+    attributes:
+      label: Parent project issue URL
+      description: Native parent issue for this child task, if it is part of a bounded project.
+      placeholder: https://github.com/ORG/REPO/issues/NN
+    validations:
+      required: false
+  - type: textarea
+    id: goal
+    attributes:
+      label: Workflow goal and trigger
+      description: What will run, when, and for what outcome?
+    validations:
+      required: true
+  - type: textarea
+    id: safety
+    attributes:
+      label: Safety, ownership, and recovery
+      description: State write permissions, human gates, rollback/recovery behaviour, and who owns the resulting data.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Deliverable gates and verification
+      value: |
+        - [ ]
+        - [ ]
+    validations:
+      required: true
+  - type: textarea
+    id: role-card
+    attributes:
+      label: Role card
+      description: Name implementation, independent review, merge authority, and stop condition.
+    validations:
+      required: true
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Privacy / secrets
+      options:
+        - label: This issue contains no credentials, tokens, or raw private/not-public material.
+          required: true

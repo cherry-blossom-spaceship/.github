@@ -1,0 +1,77 @@
+name: Project parent
+description: The single parent issue for a bounded project. Attach implementation work as native sub-issues.
+title: "[Project] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use one parent issue for a bounded project, then attach its work items as **native GitHub sub-issues**.
+
+        Keep hierarchy to exactly one level: **parent → child**. Do not create grandchildren. A Markdown checklist is useful for notes, but does not replace attaching the actual native sub-issues.
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Outcome / why now
+      description: What changes when this project is complete, and why is it worth doing now?
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope and boundaries
+      description: Include what is deliberately out of scope.
+      placeholder: |
+        In scope:
+        - ...
+
+        Out of scope:
+        - ...
+    validations:
+      required: true
+  - type: textarea
+    id: child-plan
+    attributes:
+      label: Planned child issues
+      description: List the child titles in dependency order, then create and attach each as a native sub-issue immediately after filing this parent.
+      placeholder: |
+        1. [ ] Child: ...
+        2. [ ] Child: ...
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Parent acceptance criteria
+      description: What must be true before this parent can close?
+      value: |
+        - [ ] All in-scope native sub-issues are closed or explicitly de-scoped.
+        - [ ] End-to-end verification evidence is recorded.
+        - [ ] Follow-up work is split into a new parent issue rather than nested deeper.
+    validations:
+      required: true
+  - type: textarea
+    id: role-card
+    attributes:
+      label: Role card and gates
+      description: Name the implementation, review, and merge roles; record any human decision or safety gate.
+      placeholder: |
+        - Implementation:
+        - Independent review:
+        - Merge authority:
+        - Human gate / stop condition:
+    validations:
+      required: true
+  - type: textarea
+    id: sources
+    attributes:
+      label: Context / source links
+      description: Link relevant issues, docs, ADRs, repositories, or prior decisions.
+    validations:
+      required: false
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Privacy / secrets
+      options:
+        - label: This issue contains no credentials, tokens, or raw private/not-public material.
+          required: true

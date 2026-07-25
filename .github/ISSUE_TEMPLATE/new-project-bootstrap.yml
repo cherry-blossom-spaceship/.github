@@ -1,0 +1,52 @@
+name: New project bootstrap
+description: Propose a new repository, service, or system project with its first safe delivery rails.
+title: "[Bootstrap] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this before launching a new project. Once approved, make it the native parent issue and attach the first implementation work as one-level sub-issues.
+  - type: input
+    id: project-name
+    attributes:
+      label: Project name
+    validations:
+      required: true
+  - type: textarea
+    id: purpose
+    attributes:
+      label: Purpose and user value
+    validations:
+      required: true
+  - type: textarea
+    id: repository-plan
+    attributes:
+      label: Repository and deployment plan
+      description: State intended repository, visibility, runtime/deployment surface, and data ownership.
+    validations:
+      required: true
+  - type: textarea
+    id: initial-children
+    attributes:
+      label: Required first child issues
+      description: Include at least initial CI, first implementation slice, and operational recovery/backup work when stateful.
+      value: |
+        - [ ] CI / quality gate
+        - [ ] First implementation slice
+        - [ ] Recovery / backup / rollback (if stateful)
+    validations:
+      required: true
+  - type: textarea
+    id: role-card
+    attributes:
+      label: Role card and human gate
+      description: Name implementation, independent review, merge authority, human approval, and stop condition.
+    validations:
+      required: true
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Privacy / secrets
+      options:
+        - label: This issue contains no credentials, tokens, or raw private/not-public material.
+          required: true
