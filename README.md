@@ -1,2 +1,1 @@
-# .github
-Default community files across the Cherry Blossom Spaceship Org
+oops. I didnt mean to make this file
