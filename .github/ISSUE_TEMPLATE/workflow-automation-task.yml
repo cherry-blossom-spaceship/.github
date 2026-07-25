@@ -11,6 +11,14 @@ body:
     validations:
       required: false
   - type: textarea
+    id: workflow-ledger
+    attributes:
+      label: Quartermaster workflow ledger context
+      description: If a governed SE/agent workflow will launch or resume this work, record its workflow/run or trigger context. Otherwise write `Not ledger-tracked`.
+      value: Not ledger-tracked
+    validations:
+      required: true
+  - type: textarea
     id: goal
     attributes:
       label: Workflow goal and trigger
