@@ -35,7 +35,7 @@ body:
     id: verification
     attributes:
       label: Verification / tests
-      description: Commands, CI checks, and/or manual smoke steps that demonstrate completion.
+      description: Commands, CI checks, and/or manual smoke steps that demonstrate completion. If the slice pins or verifies text with a checksum, specify canonical UTF-8 + LF line-ending normalisation before hashing and LF/CRLF equivalence coverage.
     validations:
       required: true
   - type: textarea
