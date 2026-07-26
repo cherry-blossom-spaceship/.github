@@ -5,6 +5,11 @@ body:
   - type: markdown
     attributes:
       value: |
+        ### Sovereignty, portability, and rename-resilience
+        Use the Path Registry; do not hardcode paths. Keep code OS-agnostic across Windows and Linux, with registry entries rather than machine-specific paths as the canonical reference.
+  - type: markdown
+    attributes:
+      value: |
         Use this for one reviewable unit of work. Link it to a native **Project parent** issue; do not create sub-issues beneath this slice.
   - type: input
     id: parent

@@ -2,6 +2,11 @@ name: Workflow / automation task
 description: Add or change CI, scheduled automation, agents, hooks, or other operational workflow.
 title: "[Workflow] "
 body:
+  - type: markdown
+    attributes:
+      value: |
+        ### Sovereignty, portability, and rename-resilience
+        Use the Path Registry; do not hardcode paths. Keep code OS-agnostic across Windows and Linux, with registry entries rather than machine-specific paths as the canonical reference.
   - type: input
     id: parent
     attributes:
