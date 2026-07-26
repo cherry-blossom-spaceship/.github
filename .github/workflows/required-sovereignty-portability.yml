@@ -1,0 +1,14 @@
+name: Required Sovereignty / Portability
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  required-sovereignty-portability:
+    uses: ./.github/workflows/sovereignty-portability.yml
+    with:
+      base_ref: ${{ github.base_ref }}
