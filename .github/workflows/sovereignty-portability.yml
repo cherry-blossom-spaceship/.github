@@ -1,0 +1,34 @@
+name: Sovereignty / Portability
+
+on:
+  workflow_call:
+    inputs:
+      base_sha:
+        description: Pull-request base commit SHA
+        required: true
+        type: string
+      governance_ref:
+        description: Ref containing the governance validator
+        required: false
+        default: main
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  sovereignty-portability:
+    name: sovereignty-portability
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          path: target
+      - uses: actions/checkout@v4
+        with:
+          repository: cherry-blossom-spaceship/.github
+          ref: ${{ inputs.governance_ref }}
+          path: governance
+      - name: Reject unregistered machine paths
+        run: python governance/scripts/verify_sovereignty_portability.py target "${{ inputs.base_sha }}"

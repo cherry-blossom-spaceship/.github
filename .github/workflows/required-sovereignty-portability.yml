@@ -1,0 +1,21 @@
+name: Required Sovereignty / Portability
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  validator-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run hermetic validator tests
+        run: python -m unittest discover -s scripts/tests -v
+  required-sovereignty-portability:
+    uses: ./.github/workflows/sovereignty-portability.yml
+    with:
+      base_sha: ${{ github.event.pull_request.base.sha }}
+      governance_ref: ${{ github.event.pull_request.head.ref }}
