@@ -23,7 +23,7 @@ class GateFixture:
         self.run("git", "config", "user.email", "fixture@example.invalid")
         (self.root / ".github").mkdir()
         self.registry([])
-        (self.root / "portable.py").write_text("value = 'semantic'\n", encoding="utf-8")
+        self.write("portable.py", "value = 'semantic'\n")
         self.run("git", "add", ".")
         self.run("git", "commit", "-qm", "base")
         self.base = self.run("git", "rev-parse", "HEAD").stdout.strip()
@@ -39,6 +39,11 @@ class GateFixture:
         path = self.root / relative
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(text, encoding="utf-8")
+
+    def commit_as_base(self, message: str) -> None:
+        self.run("git", "add", ".")
+        self.run("git", "commit", "-qm", message)
+        self.base = self.run("git", "rev-parse", "HEAD").stdout.strip()
 
     def close(self) -> None:
         self.temp.cleanup()
@@ -63,6 +68,14 @@ class SovereigntyGateTests(unittest.TestCase):
         )
         self.assertEqual([], self.scan())
 
+    def test_uses_fix_on_touch_ratchet_for_changed_files(self) -> None:
+        native = "C" + ":" + chr(92) + "legacy"
+        self.fixture.write("portable.py", f"legacy = '{native}'\n")
+        self.fixture.commit_as_base("legacy violation")
+        self.fixture.write("portable.py", f"# unrelated edit\nlegacy = '{native}'\n")
+        violations = self.scan()
+        self.assertTrue(any("Windows drive path" in item for item in violations), violations)
+
     def test_rejects_native_process_receiving_msys_path(self) -> None:
         msys = "/" + "c" + "/" + "workspace"
         self.fixture.write("launch.py", f"subprocess.run(['native-tool', '{msys}'], check=True)\n")
@@ -75,26 +88,58 @@ class SovereigntyGateTests(unittest.TestCase):
         violations = self.scan()
         self.assertTrue(any("Windows drive path" in item for item in violations), violations)
 
-    def test_exact_unexpired_exception_is_allowed(self) -> None:
+    def test_rejects_cygdrive_other_msys_mount_and_macos_home(self) -> None:
+        cygwin = "/" + "cygdrive/c/workspace"
+        msys = "/" + "d/workspace"
+        macos = "/" + "Users/neva/project"
+        self.fixture.write(
+            "paths.py",
+            f"cygwin = {cygwin!r}\nmsys = {msys!r}\nmacos = {macos!r}\n",
+        )
+        violations = self.scan()
+        self.assertEqual(3, sum("POSIX home or mount path" in item for item in violations), violations)
+
+    def test_scans_makefiles_dockerfiles_and_extensionless_scripts(self) -> None:
+        native = "C" + ":" + chr(92) + "tools"
+        self.fixture.write("Makefile", f"TOOL := {native}\n")
+        self.fixture.write("Dockerfile", f"ENV TOOL={native}\n")
+        self.fixture.write("scripts/deploy", f"tool='{native}'\n")
+        self.fixture.write("bootstrap.ps1", f"$tool = '{native}'\n")
+        violations = self.scan()
+        self.assertEqual(4, sum("Windows drive path" in item for item in violations), violations)
+
+    def test_nul_bytes_fail_closed(self) -> None:
+        path = self.fixture.root / "portable.sh"
+        native = ("C" + ":" + chr(92) + "tools").encode()
+        path.write_bytes(b"path=" + native + bytes([0, 10]))
+        violations = self.scan()
+        self.assertTrue(any("NUL-byte" in item for item in violations), violations)
+
+    def test_exact_unexpired_exception_is_path_scoped(self) -> None:
         native = "C" + ":" + chr(92) + "adapter"
         line = f"native_adapter '{native}'"
         self.fixture.registry(
             [{
+                "path": "adapter.sh",
                 "text": line,
                 "reason": "platform adapter boundary",
-                "issue": "https://github.com/example/repository/issues/1",
+                "issue": "https://github.com/cherry-blossom-spaceship/.github/issues/5",
                 "expires": "2099-01-01",
             }]
         )
         self.fixture.write("adapter.sh", line + "\n")
-        self.assertEqual([], self.scan())
+        self.fixture.write("other.sh", line + "\n")
+        violations = self.scan()
+        self.assertEqual(1, sum("Windows drive path" in item for item in violations), violations)
+        self.assertTrue(violations[0].startswith("other.sh:"), violations)
 
     def test_expired_exception_fails_closed(self) -> None:
         self.fixture.registry(
             [{
+                "path": "legacy.sh",
                 "text": "legacy adapter",
                 "reason": "temporary fixture",
-                "issue": "https://github.com/example/repository/issues/1",
+                "issue": "https://github.com/cherry-blossom-spaceship/.github/issues/5",
                 "expires": "2000-01-01",
             }]
         )
