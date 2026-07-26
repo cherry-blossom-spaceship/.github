@@ -1,67 +1,107 @@
 #!/usr/bin/env python3
-"""Fail PRs that introduce real machine paths outside reviewed exceptions.
+"""GitHub merge gate for portable, rename-resilient repository changes.
 
-This is intentionally a GitHub merge gate, not an advisory document. It scans
-only changed portable source/config/workflow files so rollout does not fail on
-historic material. Machine locations must be semantic registry keys or explicit
-environment variables; exceptions are reviewed in .github/path-exceptions.txt.
+The gate examines only files introduced or modified by a pull request. Portable
+locations must be expressed through a semantic registry key, repository-root
+discovery, or an explicit environment value. A narrowly reviewed, exact-text
+exception may be recorded in the repository registry with an issue and expiry.
 """
 from __future__ import annotations
 
+import datetime as dt
+import json
 import re
 import subprocess
 import sys
 from pathlib import Path
 
-ROOT = Path(sys.argv[1]).resolve()
-BASE = sys.argv[2]
-PORTABLE_SUFFIXES = {".sh", ".bash", ".py", ".js", ".mjs", ".cjs", ".ts", ".tsx", ".yml", ".yaml", ".json", ".toml"}
-EXCLUDED_PREFIXES = (".github/path-exceptions.txt", "config/path-registry.example.yaml")
-# Actual, machine-specific forms. Generic documented placeholders are not paths.
+PORTABLE_SUFFIXES = {
+    ".bash", ".cjs", ".js", ".json", ".mjs", ".py", ".sh", ".toml",
+    ".ts", ".tsx", ".yaml", ".yml",
+}
+REGISTRY = Path(".github/sovereignty-portability-registry.json")
 RULES = {
-    "Windows user/drive path": re.compile(r"(?i)(?:[A-Z]:[\\/](?:Users|20-code-repositories|AppData)[\\/])"),
-    "POSIX home/mount path": re.compile(r"(?<![A-Za-z0-9_])/(?:home|mnt|f|c)/[A-Za-z0-9_.-]"),
+    "Windows drive path": re.compile(r"(?i)(?<![A-Za-z0-9_])[A-Z]:(?:\\|/(?!/))"),
+    "POSIX home or mount path": re.compile(r"(?<![A-Za-z0-9_])/(?:home|mnt|c|f)/[A-Za-z0-9_.-]"),
     "UNC host path": re.compile(r"\\\\(?!<)[A-Za-z0-9][A-Za-z0-9_.-]*\\"),
 }
 
 
-def changed_files() -> list[Path]:
-    subprocess.run(["git", "fetch", "origin", BASE, "--depth=1"], cwd=ROOT, check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    result = subprocess.run(["git", "diff", "--name-only", f"origin/{BASE}...HEAD"], cwd=ROOT, text=True, capture_output=True, check=True)
-    return [ROOT / line for line in result.stdout.splitlines() if line]
+def fail(message: str) -> None:
+    raise SystemExit(f"Sovereignty / Portability gate failed: {message}")
 
 
-def exception_lines() -> set[str]:
-    path = ROOT / ".github/path-exceptions.txt"
-    if not path.exists():
-        return set()
-    # Each exact exception must be accompanied by an issue reference and expiry.
-    lines = {line.strip() for line in path.read_text(encoding="utf-8").splitlines() if line.strip() and not line.lstrip().startswith("#")}
-    for line in lines:
-        if " | issue:" not in line or " | expires:" not in line:
-            raise SystemExit(f"Malformed path exception: {line!r}")
-    return {line.split(" | issue:", 1)[0] for line in lines}
+def parse_registry(root: Path) -> set[str]:
+    path = root / REGISTRY
+    if not path.is_file():
+        fail(f"missing required registry contract: {REGISTRY.as_posix()}")
+    try:
+        registry = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as error:
+        fail(f"invalid registry JSON: {error}")
+    if registry.get("version") != 1 or not isinstance(registry.get("exceptions"), list):
+        fail("registry requires version 1 and an exceptions list")
+
+    allowed: set[str] = set()
+    today = dt.date.today()
+    for entry in registry["exceptions"]:
+        if not isinstance(entry, dict):
+            fail("registry exceptions must be objects")
+        required = ("text", "reason", "issue", "expires")
+        if any(not isinstance(entry.get(key), str) or not entry[key].strip() for key in required):
+            fail("each exception requires non-empty text, reason, issue, and expires")
+        if not re.fullmatch(r"https://github\.com/[^/]+/[^/]+/issues/\d+", entry["issue"]):
+            fail(f"exception has non-issue URL: {entry['issue']!r}")
+        try:
+            expiry = dt.date.fromisoformat(entry["expires"])
+        except ValueError:
+            fail(f"exception expiry is not ISO date: {entry['expires']!r}")
+        if expiry < today:
+            fail(f"exception expired on {expiry.isoformat()}: {entry['text']!r}")
+        allowed.add(entry["text"])
+    return allowed
 
 
-def main() -> int:
-    exceptions = exception_lines()
+def changed_files(root: Path, base_sha: str) -> list[Path]:
+    result = subprocess.run(
+        ["git", "diff", "--name-only", "--diff-filter=ACMR", f"{base_sha}...HEAD"],
+        cwd=root,
+        text=True,
+        capture_output=True,
+        check=True,
+    )
+    return [root / relative for relative in result.stdout.splitlines() if relative]
+
+
+def scan(root: Path, base_sha: str) -> list[str]:
+    allowed = parse_registry(root)
     violations: list[str] = []
-    for path in changed_files():
-        rel = path.relative_to(ROOT).as_posix()
-        if rel.startswith(EXCLUDED_PREFIXES) or path.suffix.lower() not in PORTABLE_SUFFIXES or not path.is_file():
+    for path in changed_files(root, base_sha):
+        relative = path.relative_to(root).as_posix()
+        if relative == REGISTRY.as_posix() or path.suffix.lower() not in PORTABLE_SUFFIXES or not path.is_file():
             continue
-        for number, line in enumerate(path.read_text(encoding="utf-8", errors="replace").splitlines(), 1):
-            if line.strip() in exceptions:
+        for line_number, line in enumerate(path.read_text(encoding="utf-8", errors="replace").splitlines(), 1):
+            if line.strip() in allowed:
                 continue
-            for label, rule in RULES.items():
-                if rule.search(line):
-                    violations.append(f"{rel}:{number}: {label}: use a path-registry key or env var")
+            for label, pattern in RULES.items():
+                if pattern.search(line):
+                    violations.append(
+                        f"{relative}:{line_number}: {label}; use a registry key, repo-root discovery, or env value"
+                    )
+    return violations
+
+
+def main(argv: list[str]) -> int:
+    if len(argv) != 3:
+        fail("usage: verify_sovereignty_portability.py REPOSITORY_ROOT BASE_SHA")
+    root = Path(argv[1]).resolve()
+    violations = scan(root, argv[2])
     if violations:
         print("Sovereignty / Portability gate failed:", *violations, sep="\n  ", file=sys.stderr)
         return 1
-    print("Sovereignty / Portability gate passed: no introduced machine-specific paths.")
+    print("Sovereignty / Portability gate passed: registry present; no introduced machine-specific paths.")
     return 0
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    raise SystemExit(main(sys.argv))
