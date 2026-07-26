@@ -1,12 +1,13 @@
 # Repository Cheat Sheet
 
-> Copy this file to `docs/agent/REPO_CHEAT_SHEET.md` in a repository. Keep it a concise, verified launch aid—not a project diary or a substitute for the live issue/PR state.
+> Copy this file to `docs/agent/REPO_CHEAT_SHEET.md` in a repository. Keep it a concise, verified launch aid—not a project diary or a substitute for live issue/PR state.
 
 ## Purpose and limits
 
 - **Use for:** stable facts a fresh coding or review agent otherwise has to rediscover.
 - **Do not use for:** secrets, private transcripts, mutable task status, raw logs, credentials, or long architecture prose.
-- **Size budget:** aim for 1–2 screens; move detailed or conditional knowledge into source-linked cards.
+- **Enforceable size budget:** at most **120 lines** and **8 active invariant rows**. A repository checker must fail when either cap is exceeded.
+- **Card bound:** each active invariant/action is 30–100 words maximum.
 - **Authority:** live GitHub state, code, tests, and runtime configuration override this sheet.
 
 ## Verification metadata
@@ -35,38 +36,54 @@
 |---|---|---|---|
 | Example: migrations | `path/from/repo/root` | `command` | `PR/issue/test URL` |
 
-## Stable invariants and known traps
+## Active invariants and known traps
 
-| Trigger / applies when | Verified fact or smallest safe action | Source | Status |
-|---|---|---|---|
-| Example: changing a migration | Locate the migration-version fixture before changing the migration count. | `PR/test URL` | verified |
+<!-- At most 8 active rows. One row = one injectible card. -->
 
-**Status values:** `candidate` (not injectable), `verified` (safe to inject), `promoted-to-rail` (use the script/test instead), `retired`.
+| obstacle_key | applies_when | verified fact or smallest safe action | incident_refs | evidence/source | owner | last_verified | status | disposition / rail link |
+|---|---|---|---|---|---|---|---|---|
+| `migration-fixture-impact` | changing a migration | Locate the migration-version fixture before changing the migration count. | `PR/issue URLs` | `test/PR URL` | `role or team` | `YYYY-MM-DD` | `verified` | `—` |
 
-## Retrieval tags
+**Status lifecycle:**
 
-<!-- Stable labels for deterministic launch-packet selection. Keep these short and few. -->
+- `candidate`: evidence is incomplete; never inject it.
+- `verified`: injectable when its controlled retrieval tag matches the task.
+- `promoted-to-rail`: after **two incident references for the same `obstacle_key` despite a verified card**, create the script/lint/test/preflight, write its URL in `disposition / rail link`, move the row to `docs/agent/RETIRED_CARDS.md`, then remove it from this active table.
+- `retired`: move the row to `docs/agent/RETIRED_CARDS.md` with a reason/source, then remove it from this active table.
 
-`windows` `migration` `provider` `github-identity` `runtime`
+## Controlled retrieval tags
+
+Use only the values declared here. Add or rename a tag only in a reviewed change with a source link; do not improvise aliases such as `win32` for `windows-msys`.
+
+| Tag | Applies to |
+|---|---|
+| `windows-msys` | Git Bash/MSYS/native-Windows boundaries |
+| `migration-schema` | migrations, schemas, fixture-version contracts |
+| `provider-safety` | explicit provider/model/network guard |
+| `github-identity` | GitHub account, commit identity, role lane |
+| `runtime-prerequisite` | task-specific service, DB, tool, or schema availability |
+| `portability` | Path Registry or OS-agnostic portability rules |
 
 ## Candidate lesson intake
 
-Record a candidate while the run is fresh, then promote it only with evidence.
+Record a candidate while the run is fresh, then promote it only with evidence. Field names deliberately match the active-table contract.
 
 ```text
 obstacle_key:
 applies_when:
-observed_failure:
-smallest safe action:
-source_issue_or_pr:
-evidence (test / repro / command):
-proposed status: candidate
+verified_fact_or_smallest_safe_action:
+incident_refs:
+evidence_source:
+owner:
+last_verified:
+status: candidate
+proposed_controlled_tag:
 ```
 
 ## Upkeep protocol
 
-1. **Launcher:** read this sheet only when the repository is selected; select rows by deterministic tags before any semantic lookup.
+1. **Launcher:** read this sheet only when the repository is selected; select rows by controlled tags before any semantic lookup.
 2. **PR author:** add at most one concise candidate when a *new, reusable* lesson was discovered. Do not copy ordinary task progress here.
-3. **Reviewer/maintainer:** promote a candidate only if its source and verification are recorded; otherwise delete or leave it as a non-injectable candidate.
-4. **Twice rule:** if a verified card fails to prevent the same incident twice, create a preflight, lint, test, or wrapper rail; mark the row `promoted-to-rail` and remove it from normal injection.
-5. **Monthly or ten-launch trim:** remove stale, duplicate, superseded, or never-used rows. The sheet must shrink as executable rails replace prose.
+3. **Reviewer/maintainer:** promote a candidate only if source, owner, controlled tag, and verification are recorded; otherwise delete it or leave it non-injectable.
+4. **Twice rule:** count `incident_refs` for the exact `obstacle_key`; on the second incident after verification, graduate it to an executable rail and apply the stated disposition.
+5. **Monthly or ten-launch trim:** run the checker; review each row's `last_verified`, owner, incident references, and disposition. Remove stale, duplicate, superseded, or never-used active rows. The sheet must shrink as executable rails replace prose.
