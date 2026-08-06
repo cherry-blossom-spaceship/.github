@@ -1,0 +1,10 @@
+# Normalize line endings to LF for the repo; checkout on Windows stays LF (no CRLF conversion)
+* text=auto eol=lf
+
+# Binary files
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.gif binary
+*.ico binary
